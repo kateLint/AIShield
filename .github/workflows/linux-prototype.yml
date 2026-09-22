@@ -1,0 +1,15 @@
+name: Linux prototype
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  security-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make -C prototype/linux
+      - name: Test Landlock enforcement
+        run: python3 prototype/linux/test_aishield.py -v
