@@ -24,7 +24,7 @@ Landlock domains are additive and cannot be relaxed. A lock added after an agent
 4. Adversarial tests for direct access, descendants, symlinks, hard links, renames, pre-opened descriptors, and external helpers.
 5. Clear status showing which launched sessions are protected and whether a lock requires restart.
 
-The first code in `prototype/linux` is a smaller *feasibility spike*: it installs an explicit Landlock allowlist, closes inherited descriptors, and executes a command. It does not yet include the persistent lock registry, session tracking, authentication, audit logging, or the complete adversarial suite. It must not be marketed as the v1 product.
+The code in `prototype/linux` remains a *feasibility spike*. It installs an explicit Landlock allowlist, reads root-owned persistent locks, and offers a root-only local service for lock and unlock. It does not yet track or restart active agents, provide an ordinary user's trusted authentication flow, log deny events, control IPC/network access, or pass a complete adversarial review. It must not be marketed as the v1 product.
 
 ## Acceptance gates
 

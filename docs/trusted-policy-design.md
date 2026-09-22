@@ -4,7 +4,7 @@
 
 The persistent lock registry must live outside the AI process's authority. A file owned and writable by the same Unix user as the agent is insufficient: an agent with a filesystem grant to that location could edit or replace it, then ask for a new domain. Requiring a password in an ordinary CLI does not solve this if the agent can invoke that CLI or reuse the authenticated channel.
 
-The first secure implementation should use a small privileged service and a root-owned policy store. The service owns policy mutations and launches or authorizes domains. The user-facing CLI is an unprivileged client. The service must never treat an approval inside an AI application as unlock authorization.
+The first implementation uses a small privileged service and a root-owned policy store. The service owns policy mutations and accepts only root peers on a local Unix socket. For now, administrators invoke the client with `sudo`; the agent domain uses `no_new_privs`, so it cannot become root with a setuid helper. This is a prototype authorization boundary, not yet a polished user-presence flow. The service must never treat an approval inside an AI application as unlock authorization.
 
 ## Control path
 
@@ -14,7 +14,7 @@ The first secure implementation should use a small privileged service and a root
 4. The service records the policy revision and checks running domains affected by the change.
 5. A newly added lock is reported as enforced only after affected domains exit or are restarted under the new revision. Unlocking also requires a new domain for access to expand.
 
-The service's caller classification and authentication mechanism are **unresolved security gates**. Until implemented and tested, no `unlock` command should be presented as a trusted control path.
+The service's root-peer check is implemented and tested. Interactive authorization for non-root users, caller classification across external helpers, and safe handling of already-running agents remain **unresolved security gates**. The current `unlock` command is for a root administrator only; it must not be advertised as the finished product flow.
 
 ## Data and process boundaries
 
@@ -37,6 +37,6 @@ The service's caller classification and authentication mechanism are **unresolve
 
 1. Finish the path and process tests for the current allowlist prototype.
 2. Prototype a root-owned policy snapshot and grant validation, with no unlock operation. The feasibility spike now reads `/etc/aishield/locks` for this purpose, but installation and updates are manual and there is no service yet.
-3. Add service-mediated lock and unlock with caller classification and user presence.
+3. Add service-mediated lock and unlock. The prototype now has root-peer authorization; caller classification beyond root and user-presence authentication are still required for the product UX.
 4. Track and restart affected sessions before claiming immediate locks.
 5. Review the full attack surface independently before any release that invites users to protect sensitive files.

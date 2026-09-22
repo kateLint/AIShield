@@ -1,2 +1,4 @@
 prototype/linux/aishield-proto
+prototype/linux/aishieldd
+prototype/linux/aishieldctl
 __pycache__/
