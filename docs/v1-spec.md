@@ -6,9 +6,9 @@ The first user is a developer running local CLI agents on Linux. The first relea
 
 ## Security promise
 
-For an agent launched in an AIShield domain, the operating system denies access to files outside the domain's granted filesystem roots. Permission given inside the agent does not expand those roots. The restriction applies to descendants that remain in the domain. The launcher refuses to run if it cannot install the sandbox.
+For an agent launched in an AIShield domain, the operating system denies filesystem operations through paths outside the domain's granted roots. Permission given inside the agent does not expand those roots. The restriction applies to descendants that remain in the domain. The launcher refuses to run if it cannot install the sandbox.
 
-This is intentionally narrower than “no AI can read this folder.” An agent started outside AIShield, an unrestricted external helper, a privileged attacker, an already-open descriptor, or a copy of data elsewhere falls outside the claim. Network access and IPC are not controlled in v1.
+This is intentionally narrower than “no AI can read this folder.” An agent started outside AIShield, an unrestricted external helper, a privileged attacker, a pre-existing hard link or copy inside an allowed root, or data supplied over standard input, IPC, or the network falls outside the path-based claim. Network access and IPC are not controlled in v1.
 
 ## Crucial design correction
 
@@ -33,6 +33,7 @@ The first code in `prototype/linux` is a smaller *feasibility spike*: it install
 - Reads inside the root work; writes work only in a write-granted root.
 - Symlinks into excluded areas fail.
 - An inherited file descriptor to an excluded file is unavailable to the agent.
+- A regular file or directory pre-opened on standard input, output, or error causes launch failure.
 - Unsupported or disabled Landlock causes launch failure, never an unrestricted fallback.
 - A nested lock inside a granted parent is rejected with a useful explanation.
 - The supported kernel ABI and filesystem limitations are documented from test results.

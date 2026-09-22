@@ -76,6 +76,13 @@ class LandlockTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Bad file descriptor", result.stderr)
 
+    def test_preopened_stdin_rejected(self):
+        args = [str(LAUNCHER), "--read", str(self.allowed), "--", "/bin/cat"]
+        with (self.secret / "no.txt").open("rb") as secret_input:
+            result = subprocess.run(args, stdin=secret_input, text=True, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("pre-opened file", result.stderr)
+
     def test_nested_lock_rejected(self):
         args = [str(LAUNCHER), "--read", self.temp.name, "--lock", str(self.secret),
                 "--", "/bin/true"]

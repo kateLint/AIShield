@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -113,6 +114,15 @@ int main(int argc, char **argv) {
                     LANDLOCK_RULE_PATH_BENEATH, &rule, 0) < 0)
             die("add Landlock rule");
         close(fd);
+    }
+
+    /* A pre-opened regular file or directory on stdio bypasses path checks. */
+    for (int fd = 0; fd <= 2; fd++) {
+        struct stat st;
+        if (fstat(fd, &st) == 0 && (S_ISREG(st.st_mode) || S_ISDIR(st.st_mode))) {
+            fprintf(stderr, "refusing pre-opened file or directory on fd %d\n", fd);
+            return 1;
+        }
     }
 
     /* Close pre-sandbox handles. The ruleset itself is not needed after installation. */
