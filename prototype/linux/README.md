@@ -20,4 +20,4 @@ The launcher checks the Landlock ABI, creates its rules, rejects regular files a
 
 The code compiled in a Linux Docker container on 2026-09-22, but Docker Desktop's Linux VM returned `ENOSYS` for the Landlock version probe, including with container seccomp disabled. Runtime enforcement therefore remains unverified and needs a Linux host or VM with Landlock enabled.
 
-Run `python3 test_aishield.py -v` on a Linux host after building. The tests cover allowed and denied reads, descendants, symlinks, write grants, inherited descriptors, and overlapping roots. The GitHub Actions workflow runs the same tests on an Ubuntu runner. A runner without Landlock fails the tests instead of silently skipping them.
+Run `python3 test_aishield.py -v` on a Linux host after building. The tests cover allowed and denied reads, descendants, symlinks, write grants, inherited descriptors, and overlapping roots. A hard-link test is marked as an expected failure to keep the known object-identity gap visible. The GitHub Actions workflow runs the same tests on an Ubuntu runner. A runner without Landlock fails the tests instead of silently skipping them.

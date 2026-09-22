@@ -51,6 +51,12 @@ class LandlockTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("secret", result.stdout)
 
+    def test_grandchild_denied(self):
+        code = "import subprocess,sys; sys.exit(subprocess.run(['/bin/cat',sys.argv[1]]).returncode)"
+        result = self.run_agent([sys.executable, "-c", code, str(self.secret / "no.txt")])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("secret", result.stdout)
+
     def test_symlink_into_secret_denied(self):
         link = self.allowed / "link"
         link.symlink_to(self.secret / "no.txt")
@@ -67,6 +73,24 @@ class LandlockTests(unittest.TestCase):
         allowed = self.run_agent(command, writable=True)
         self.assertEqual(allowed.returncode, 0, allowed.stderr)
         self.assertEqual(target.read_text(), "ok")
+
+    def test_rename_outside_grant_denied(self):
+        code = "import os,sys; os.rename(sys.argv[1],sys.argv[2])"
+        source = self.allowed / "ok.txt"
+        target = self.secret / "moved.txt"
+        result = self.run_agent([sys.executable, "-c", code, str(source), str(target)], writable=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(source.exists())
+        self.assertFalse(target.exists())
+
+    @unittest.expectedFailure
+    def test_known_limitation_preexisting_hard_link(self):
+        """Document a path-based escape until object identity controls exist."""
+        alias = self.allowed / "alias.txt"
+        os.link(self.secret / "no.txt", alias)
+        result = self.run_agent(["/bin/cat", str(alias)])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("secret", result.stdout)
 
     def test_inherited_descriptor_closed(self):
         fd = os.open(self.secret / "no.txt", os.O_RDONLY)
