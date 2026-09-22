@@ -114,6 +114,17 @@ class LandlockTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("grant narrower roots", result.stderr)
 
+    def test_root_owned_policy_cannot_be_omitted(self):
+        policy_lock = Path("/tmp/aishield-ci-system-locked")
+        if not policy_lock.exists():
+            self.skipTest("root-owned CI policy is not installed")
+        result = subprocess.run(
+            [str(LAUNCHER), "--read", "/tmp", "--", "/bin/true"],
+            text=True, capture_output=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("grant narrower roots", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

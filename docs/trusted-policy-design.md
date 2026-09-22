@@ -36,7 +36,7 @@ The service's caller classification and authentication mechanism are **unresolve
 ## Milestone order
 
 1. Finish the path and process tests for the current allowlist prototype.
-2. Prototype a root-owned policy snapshot and grant validation, with no unlock operation.
+2. Prototype a root-owned policy snapshot and grant validation, with no unlock operation. The feasibility spike now reads `/etc/aishield/locks` for this purpose, but installation and updates are manual and there is no service yet.
 3. Add service-mediated lock and unlock with caller classification and user presence.
 4. Track and restart affected sessions before claiming immediate locks.
 5. Review the full attack surface independently before any release that invites users to protect sensitive files.

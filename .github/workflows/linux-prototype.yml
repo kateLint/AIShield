@@ -11,5 +11,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build
         run: make -C prototype/linux
+      - name: Provision root-owned test policy
+        run: |
+          mkdir -p /tmp/aishield-ci-system-locked
+          sudo install -d -m 0755 /etc/aishield
+          printf '%s\n' /tmp/aishield-ci-system-locked | sudo tee /etc/aishield/locks >/dev/null
+          sudo chmod 0644 /etc/aishield/locks
       - name: Test Landlock enforcement
         run: python3 prototype/linux/test_aishield.py -v

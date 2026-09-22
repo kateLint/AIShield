@@ -25,6 +25,7 @@
 #endif
 
 #define MAX_ROOTS 128
+#define SYSTEM_POLICY_DIR "/etc/aishield"
 
 static const unsigned long long read_rights =
     LANDLOCK_ACCESS_FS_EXECUTE | LANDLOCK_ACCESS_FS_READ_FILE |
@@ -55,7 +56,55 @@ static void usage(void) {
     exit(2);
 }
 
+static void require_root_owned(int fd, bool directory) {
+    struct stat st;
+    if (fstat(fd, &st) < 0) die("stat system policy");
+    if (st.st_uid != 0 || (st.st_mode & 022) ||
+        (directory ? !S_ISDIR(st.st_mode) : !S_ISREG(st.st_mode))) {
+        fprintf(stderr, "system policy must be root-owned and not group/other writable\n");
+        exit(1);
+    }
+}
+
+static void load_system_locks(char **locks, size_t *count) {
+    int dirfd = open(SYSTEM_POLICY_DIR, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    if (dirfd < 0) {
+        if (errno == ENOENT) return; /* Prototype can run without a system policy. */
+        die("open system policy directory");
+    }
+    require_root_owned(dirfd, true);
+    int fd = openat(dirfd, "locks", O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+    close(dirfd);
+    if (fd < 0) die("open system locks");
+    require_root_owned(fd, false);
+    FILE *stream = fdopen(fd, "r");
+    if (!stream) die("read system locks");
+    char line[PATH_MAX + 2];
+    while (fgets(line, sizeof(line), stream)) {
+        size_t len = strlen(line);
+        if (len && line[len - 1] == '\n') line[--len] = '\0';
+        else if (!feof(stream)) {
+            fprintf(stderr, "system lock path too long\n");
+            exit(1);
+        }
+        if (len == 0 || line[0] == '#') continue;
+        if (line[0] != '/' || *count == MAX_ROOTS) {
+            fprintf(stderr, "invalid system lock entry\n");
+            exit(1);
+        }
+        char *path = realpath(line, NULL);
+        if (!path) die("resolve system lock");
+        locks[(*count)++] = path;
+    }
+    if (ferror(stream)) die("read system locks");
+    fclose(stream);
+}
+
 int main(int argc, char **argv) {
+    if (geteuid() == 0) {
+        fprintf(stderr, "refusing to launch an agent as root\n");
+        return 1;
+    }
     struct root roots[MAX_ROOTS];
     char *locks[MAX_ROOTS];
     size_t root_count = 0, lock_count = 0;
@@ -78,6 +127,7 @@ int main(int argc, char **argv) {
         i += 2;
     }
     if (i >= argc - 1 || root_count == 0) usage();
+    load_system_locks(locks, &lock_count);
     for (size_t r = 0; r < root_count; r++) {
         for (size_t l = 0; l < lock_count; l++) {
             if (contains(roots[r].path, locks[l])) {
